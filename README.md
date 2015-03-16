@@ -7,3 +7,8 @@ mapi est un projet permettant le calcul de probabilités selon des évidences do
 A partir de targets souhaités, d'évidences données et d'un langage cible, mapi rendra le code dans le langage donnée afin de calculer la probabilité des targets selon les évidences
 
 
+>test 1
+*test 2
+*test 3
+
+**test 4**
