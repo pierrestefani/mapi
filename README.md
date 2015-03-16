@@ -1,6 +1,6 @@
-# Projet mapi
+## Projet mapi
 
-## Contexte
+### Contexte
 
 mapi est un projet permettant le calcul de probabilités selon des évidences données, en utilisant les réseaux bayésiens et la propagation à la Shafer-Shenoy pour l'inférence.
 
