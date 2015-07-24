@@ -9,6 +9,8 @@
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algorithmic}
 
 \title{Génération de codes d'inférences probabilistes	}
 \author{Marvin Lavechin et Pierre Stefani}
@@ -19,7 +21,7 @@
 
 \newpage
 \thispagestyle{empty}
-\pagenumbering{Alph}
+\pagenumbering{arabic}
 \setcounter{page}{0}
 ~
 \newpage
@@ -108,8 +110,55 @@ liées sans aucune orientation (évitant ainsi la gestion des cycles). Ces arbre
  \caption{Un réseau bayésien généré (à gauche), et un arbre de jonction possible pour ce réseau (à droite)}
 \end{figure}
 \par \medbreak 
-La première étape de création de ces arbres est une phase de 'moralisation' : il s'agit de créer un lien entre deux parents d'un même élémént. Dans l'exemple de la Figure 2, un lien est crée entre n2 et n5, 
-deux des parents de n9. Une fois cette moralisation effectuée, la création de 'supercliques' regroupant des élèments connectés du réseau bayésien est quasiment finie. Toute orientation est ensuite enlevée, et la dernière
-étape est une phase dite de 'triangulation', pour enlever toute possibilité de cycles à la nouvelle structure.
+La première étape de création de ces arbres est une phase de \textit{moralisation} : il s'agit de créer un lien entre deux parents d'un même élémént. Dans l'exemple de la Figure 2, un lien est crée entre n2 et n5, 
+deux des parents de n9. Une fois cette moralisation effectuée, la création de \textit{supercliques} regroupant des élèments connectés du réseau bayésien est quasiment finie. Toute orientation est ensuite enlevée, et la dernière
+étape est une phase dite de 'triangulation', pour enlever toute possibilité de cycles à la nouvelle structure. Les arbres de jonctions regroupent désormais plusieurs probabilités, et l'on associera à ces ensembles 
+leurs probabilités respectives avec des \textit{potentiels} dans le lexique des réseaux bayésiens, qui seront simplement des tableaux de probabilités dans nos langages plus courants.
+
+  \subsection{Diffusion des probabilités dans les arbres de jonctions}
+Rappelons notre principal objectif: à partir d'une évidence donnée pour une probabilité A, nous devons calculer la nouvelle probabilité de l'évènement B: l'information de A va donc devoir circuler dans le réseau. La 
+structure d'arbres de jonctions va grandement simplifier ce que l'on appelera la \textit{diffusion} de l'information. La clique de départ, celle pour laquelle  a été transmise l'information
+(ce choix arbitraire n'a d'influence que sur le temps de réponse du programme) possède un potentiel $\Phi$ contenant les probabilités des variables de notre réseau. Pour passer d'une clique A à la clique B, 
+l'information est projetée de A à B selon les séparateurs comme le montre la Figure 3. 
+ \begin{figure}[h!]
+  \includegraphics[width=\linewidth]{Images/Diff_Jt.png}
+  \caption{Exemple de diffusion d'une clique A vers une clique B dans un arbre de jonction}
+  \label{fig:Diff_Jt}
+ \end{figure}
+\par \medbreak
+La projection de A sur B suit d'abors la formule de projection sur le séparateur :\\ $$\Psi_{AB}^{'} = \sum\nolimits_{X_i \in \Phi_{A}, X_i \notin \Psi_{AB}} \Phi_{A}$$  Puis du séparateur à la clique B :\\
+$$\Phi_{B}^{'} = \Phi_{B} * \Psi_{AB}^{'}$$ Dans le cas de la figure 3, cela donne: \\
+$$\Phi_{n3,n6,n4}^{'} = \Phi_{n3, n6, n4} * \sum\nolimits_{n7} \Phi_{n3, n6, n7}$$\\
+Ainsi, à partir des évidences fournies à certaines cliques de l'arbre de jonction, toute l'information sera diffusée vers une clique principale, appelée clique racine, dans une étape que nous avons appelée 
+\textit{l'absorption}. Voici l'algorithme utilisé pour définir cette clique racine, vers qui tout converge :
+\begin{algorithm}
+ \caption{Trouver la clique racine}
+ \begin{algorithmic}
+  \STATE $VoisinsMax = -1$
+  \FOR{$I \in cliques$}
+    \FOR{$X \in targets$}
+      \IF {$X \in variables(I)$}
+	\IF{$nbVoisins(I) > voisinsMax$}
+	  \STATE $VoisinsMax \leftarrow nbVoisins(I)$
+	  \STATE $CliqueRacine \leftarrow I$
+	\ENDIF
+      \ENDIF
+    \ENDFOR
+  \ENDFOR
+  \RETURN CliqueRacine
+ \end{algorithmic}
+\end{algorithm}
+\\
+Cet algorithme permet à la fois à la clique racine de contenir au moins une target, et donc permettra un calcul rapide pour au moins un résultat, et également d'avoir le maximum de voisins, nous assurant 
+ainsi qu'il ne s'agira pas d'une clique isolée pour laquelle de nombreux calculs inutiles seraient effectués. 
+\par \medbreak
+Il faut pour calculer la probabilité de la target, revenir sur une clique la contenant, et appliquer une marginalisation:\\
+Soit une target $T \in C$, une clique de notre arbre. Marginaliser revient à calculer :
+$$P(T) = \sum\nolimits_{X \in C, X\neq T} \Phi_{C}$$ \\
+Une fois la phase d'absorption effectuée, notre arbre est dans l'état suivant: toute l'information a convergée et est contenue dans une clique racine. C'est à partir de celle-ci que la seconde étape commence,
+la \textit{diffusion} vers les targets, pour y appliquer les marginalisations. Une fonction du module \textbf{Compiler} -que nous développerons plus tard, crée une liste de diffusion avec les cliques
+visitées contenant les targets. 
+%figure here
+Admettons que B et C aient reçu l'information de la diffusion, qui doit maintenant être projetée sur A et D
 
 \end{document}
